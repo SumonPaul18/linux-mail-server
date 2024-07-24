@@ -1,6 +1,6 @@
-
+#
 ### Monitoring & Managing Postfix Email Queue
-
+#
 <b><i>Reference:</b></i>
 
 Manage Postfix Mail Server Queues like a Pro <br>
@@ -24,10 +24,9 @@ https://www.faqforge.com/linux/how-to-requeue-emails-in-postfix-on-linux/
 
 #
 
-#
-View queue mail from postfix log 
-From user: expdochk@apparellinkhk.com
-To user: shipping@laisherui.com
+View queue mail from postfix log <br>
+From user: expdochk@apparellinkhk.com <br>
+To user: shipping@laisherui.com <br>
 
 less /var/log/maillog |egrep "expdochk@apparellinkhk.com|shipping@laisherui.com"
 
@@ -108,45 +107,39 @@ Requeue Specific Emails
     postsuper -r A705238B4C
 
 Troubleshooting <br>
-Checking or Configuration
+Checking or Configuration <br>
 ####
     /etc/postfix/main.cf and /etc/postfix/master.cf
 
 #
 Remove to spaming user mail from queue in postfix
+####
+    mailq | tail -n +2 | awk 'BEGIN { RS = "" } /Useraddress/ { print $1 }' | tr -d '*!' | sudo postsuper -d -
+####
+    mailq | tail -n +2 | awk 'BEGIN { RS = "" } /@domain.com/ { print $1 }' | tr -d '*!' | sudo postsuper -d -
+####
+    mailq | tail -n +2 | awk 'BEGIN { RS = "" } /@reverie-bd.com/ { print $1 }' | tr -d '*!' | sudo postsuper -d -
+#
+Script to monitor the queue size
+####
+    /usr/bin/mailq | /usr/bin/tail -n1 | /usr/bin/gawk '{print $5}'
 
+Create a Shell Script for notify queue list to email
+####
 
-mailq | tail -n +2 | awk 'BEGIN { RS = "" } /Useraddress/ { print $1 }' | tr -d '*!' | sudo postsuper -d -
+    nano queuemail.sh
+####
+    #!/bin/bash
 
+    mailq_count="$(/usr/bin/mailq | /usr/bin/tail -n1 | /usr/bin/gawk '{print $5}')"
 
-mailq | tail -n +2 | awk 'BEGIN { RS = "" } /@domain.com/ { print $1 }' | tr -d '*!' | sudo postsuper -d -
+    # If variable is empty, then the queue is empty -> set it to zero
+    if [ -z "$mailq_count" ]; then
+      mailq_count=0
+    fi
+    
+    if [ "$mailq_count" -gt 0 ]; then
+      echo "Mail count on mail.myserver.local is ${mailq_count}" | /usr/bin/mail -s "mail.myserver.local queue size: ${mailq_count}" notify.me@somemail.local
+    fi
 
-
-mailq | tail -n +2 | awk 'BEGIN { RS = "" } /@reverie-bd.com/ { print $1 }' | tr -d '*!' | sudo postsuper -d -
-
------------------X------------------
-
-#Script to monitor the queue size
-
-/usr/bin/mailq | /usr/bin/tail -n1 | /usr/bin/gawk '{print $5}'
-
-++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#Create a Shell Script for notify queue list to email
-++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-nano queuemail.sh
-
------------------
-#!/bin/bash
-
-mailq_count="$(/usr/bin/mailq | /usr/bin/tail -n1 | /usr/bin/gawk '{print $5}')"
-
-# If variable is empty, then the queue is empty -> set it to zero
-if [ -z "$mailq_count" ]; then
-  mailq_count=0
-fi
-
-if [ "$mailq_count" -gt 0 ]; then
-  echo "Mail count on mail.myserver.local is ${mailq_count}" | /usr/bin/mail -s "mail.myserver.local queue size: ${mailq_count}" notify.me@somemail.local
-fi
-+++++++++++++++++++++++++++++++++++++++++++++++++++++
+#
