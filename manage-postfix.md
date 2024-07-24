@@ -27,14 +27,11 @@ https://www.faqforge.com/linux/how-to-requeue-emails-in-postfix-on-linux/
 View queue mail from postfix log <br>
 From user: expdochk@apparellinkhk.com <br>
 To user: shipping@laisherui.com <br>
+####
+    less /var/log/maillog |egrep "expdochk@apparellinkhk.com|shipping@laisherui.com"
 
-less /var/log/maillog |egrep "expdochk@apparellinkhk.com|shipping@laisherui.com"
-
-#
-
-postqueue -f | grep 'from=.*@debonairgroupbd.com' | awk '{print $1}' | xargs postsuper -q
-
-#
+####
+    postqueue -f | grep 'from=.*@debonairgroupbd.com' | awk '{print $1}' | xargs postsuper -q
 
 Check the Mail Queue
 ####
