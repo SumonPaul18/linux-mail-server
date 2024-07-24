@@ -1,25 +1,25 @@
 
 ### Monitoring & Managing Postfix Email Queue
 
-Reference:
+<b><i>Reference:</b></i>
 
-Manage Postfix Mail Server Queues like a Pro
+Manage Postfix Mail Server Queues like a Pro <br>
 https://mailmum.io/posts/manage-postfix-mail-server-queues/
 
 
-How to clean Zimbra mail queue as root user
+How to clean Zimbra mail queue as root user <br>
 https://www.geekytuts.net/tag/mail-queue/
 
-Postfix - how to retry delivery of mail in queue
+Postfix - how to retry delivery of mail in queue <br>
 https://serverfault.com/questions/279803/postfix-how-to-retry-delivery-of-mail-in-queue
 
-How to Flush the Mail Queue in Postfix
+How to Flush the Mail Queue in Postfix <br>
 https://sendgrid.com/en-us/blog/how-to-flush-the-mail-queue-in-postfix#:~:text=If%20an%20email%20gets%20queued,to%20take%20any%20immediate%20action.
 
-Postfix Queue Management
+Postfix Queue Management <br>
 https://easyengine.io/tutorials/mail/postfix-queue/
 
-Requeue Emails in Postfix on Linux
+Requeue Emails in Postfix on Linux <br>
 https://www.faqforge.com/linux/how-to-requeue-emails-in-postfix-on-linux/
 
 #
