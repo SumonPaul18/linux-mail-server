@@ -1,0 +1,45 @@
+## Postfix Queue Management
+
+Analyze mails in queue:
+mailq
+or
+postqueue -p
+
+#Read an email from mail queue
+#Every message in queue has a unique id.
+postcat -q  DA80E24A0A      
+or
+#Using ‘v’ will display extra information.
+postcat -qv  DA80E24A0A     
+
+#Show postfix log
+tail -f /var/log/mail.log
+
+#Flushing entire queue immediately
+postqueue -f
+
+#Delete all queued mail
+postsuper -d ALL
+
+#Delete All Deferred Mails
+postsuper -d ALL deferred
+
+#Delete a single mail from queue
+postsuper -d DA80E24A0A
+
+#Delete mails to a specific mail address
+#You need to some work here as postfix has no direct command for this.
+#Following sample is taken from postsuper man page:
+
+mailq | tail -n +2 | grep -v '^ *(' | awk  'BEGIN { RS = "" } { if ($8 == "USER@EXAMPLE.COM" && $9 == "") print $1 } ' | tr -d '*!' | postsuper -d -
+
+#Just replace USER@EXAMPLE.COM with receiver email address.
+
+#$8 will contain recipient1 email-address, $9 will contain recipient2 email-address.
+
+#If you want to filter from-email address, use $7 variable.
+
+
+
+
+

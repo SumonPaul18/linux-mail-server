@@ -1,0 +1,433 @@
++++++++++++++++++++++++++++++++++++++++++++++++++
++ How to Configure Linux Mail Server on Ubuntu  +
++++++++++++++++++++++++++++++++++++++++++++++++++
+
+In this tutorial, we’ll discover how to perform initial configuration of a mail server, and it will be cost free full featured mail server for enterprise. So many ways we can configure mail server as like linux and windows platforms. For microsoft windows called microsoft exchange server and for linux have so many tools and ways. However, In this time am configure mail server on linux and using Postfix, Dovecot and Roundcube.
+
+1. Postfix: Postfix is a mail transfer agent (MTA) which is the responsible software for delivering & receiving emails, it’s essential in order to create a complete mail server.
+
+2. Dovecot: Dovecot is a mail delivery agent (MDA), it delivers the emails from/to the mail server.
+
+3. Roundcube: Roundcube is the webmail server that you’ll be using to manage emails on your server, it has a simple web interface to do the job, it can be customized by installing more modules & themes.
+
+What we needs for configure a mail server:
+
+1. Vaild Domain (paulco.xyz)
+2. DNS Server
+3. Ubuntu 22.04.2 LTS it is 4 cpu, 8 GB RAM, 50 GB Storage, 1 NIC with public ip. 
+
++++++++++++++++++++++++++++++++++++++++++++++++
++ Basic Configuration ready for  mail server  +
++++++++++++++++++++++++++++++++++++++++++++++++
+
+#How check OS version
+cat /etc/os-release
+hostnamectl
+
+#How check CPU info
+lscpu
+cat /proc/cpuinfo
+nproc
+
+#How to check RAM
+free
+
+#How check disk space
+df -h
+
+
+#how to change hostname 
+sudo hostnamectl set-hostname mail.paulco.xyz
+
+#how to add server ip and fqdn on hosts file
+nano /etc/hosts
+
+192.168.3.55 mail.paulco.xyz mail
+
+#how to check fqdn
+hostname -f
+
+#adding user for mail server
+adduser mail
+
+#add sudo privileges
+usermod -aG sudo mail
+
+#login with mail
+su mail
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++ Installing & Configuring Postfix Mail Server on Ubuntu +
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+sudo apt-get update -y
+sudo apt-get upgrade -y
+sudo apt-get install postfix -y          #(make sure to configure "System mail name" the same as your domain name)
+
+
+#check postfix version
+postconf mail_version
+
+sudo systemctl status postfix
+
+#If you need reconfiguration postfix
+#sudo dpkg-reconfigure postfix
+
+++++++++++++++++++++++++++++++++++++++++
++ Advance Configuration on Postfix     +
+++++++++++++++++++++++++++++++++++++++++
+sudo cp /etc/postfix/main.cf /etc/postfix/main.cf.backup
+# Add a line
+sudo nano /etc/postfix/main.cf
+    home_mailbox = Maildir/
+    
+    sudo systemctl restart postfix
+
++++++++++++++++++++++++++++++++++++++++++
++ Testing Postfix Mail Server on Ubuntu +
++++++++++++++++++++++++++++++++++++++++++
+
+ping smtp.gmail.com
+
+telnet gmail-smtp-in.l.google.com 25
+
+telnet smtp.gmail.com 587
+    
+    #Output:
+        Trying 142.251.12.108...
+        Connected to smtp.gmail.com.
+        Escape character is '^]'.
+        220 smtp.gmail.com ESMTP t187-200...
+
+quit
+
+#check mail to gmail -y
+sudo apt-get install mailutils
+
+mail sumonpaul267@gmail.com
+
+ctrl+D
+
+#Verify Postfix with Local
+
+telnet 192.168.102.250 25
+
+#Send Mail Using CMD
+
+echo "Hey, I am dev stack. i want to connect with you sumon" | mail -s "Connected Mail" sumonpaul267@gmail.com
+
+tail -f /var/log/mail.log
+
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++
++ Installing Dovecot for IMAP and POP in Ubuntu +
++++++++++++++++++++++++++++++++++++++++++++++++++
+
+apt install dovecot-imapd dovecot-pop3d -y
+systemctl restart dovecot
+systemctl status dovecot
+
+cp /etc/dovecot/dovecot.conf /etc/dovecot/dovecot.conf.bak
+
+nano /etc/dovecot/dovecot.conf
+
+# Add few line
+protocols = pop3 pop3s imap imaps
+
+#uncomment the following line:
+listen = *
+
+nano /etc/dovecot/conf.d/10-auth.conf
+#uncomment the following line:
+disable_plaintext_auth = yes / no [depend on you want]
+    
+nano /etc/dovecot/conf.d/10-mail.conf
+#uncomment the following line:
+mail_location = maildir:~/Maildir
+
+#comment the following line:
+mail_location = mbox:~/mail:INBOX=/var/mail/%u
+
+sudo systemctl restart dovecot
+sudo systemctl restart postfix
+
+++++++++++++++++++++++++++++++++++++++++++++++
++ Installing Roundcube for Webmail on Ubuntu +
+++++++++++++++++++++++++++++++++++++++++++++++
+#Install Apache, MariaDB and PHP
+
+#Roundcube requires Apache, MariaDB and PHP to be installed on your server. You can install them with the following command:
+
+apt-get install apache2 mariadb-server php libapache2-mod-php php-mysql -y
+
+#After installing all the required packages, you will need to enable the Apache rewrite module for Roundcube to work. You can enable it with the following command:
+
+a2enmod rewrite
+
+#Next, reload the Apache service to apply the changes:
+
+systemctl restart apache2
+
++++++++++ Different Ways ++++++++++++++
++++++++++++++++++++++++++++++++++++++++
+#install apache2 and mariadb for roundcube
+sudo apt install apache2 apache2-utils mariadb-server mariadb-client -y
+
+#install some php packages for roundcube
+sudo apt install openssl composer php-net-smtp php-mysql php-gd php-xml php-mbstring php-intl php-zip php-json php-pear php-bz2 php-gmp php-imap php-imagick php-auth-sasl php-net-idna2 php-mail-mime php-net-ldap3 php-net-sieve -y
+
+++++ OR +++++
++++++++++++++
+
+#install some php packages for roundcube
+sudo apt install php7.4 libapache2-mod-php7.4 php7.4-mysql php-net-ldap2 php-net-ldap3 php-imagick php7.4-common php7.4-gd php7.4-imap php7.4-json php7.4-curl php7.4-zip php7.4-xml php7.4-mbstring php7.4-bz2 php7.4-intl php7.4-gmp php-net-smtp php-mail-mime php-net-idna2 -y
+
+
+#if get error to installating php! then add php repo and again install php
+sudo apt -y install software-properties-common -y
+sudo add-apt-repository ppa:ondrej/php -y
+sudo apt-get update -y
+
++++++++++ Different Ways ++++++++++++++
++++++++++++++++++++++++++++++++++++++++
+
+sudo systemctl restart apache2
+sudo systemctl status apache2
+
+#install roundcube
+wget https://github.com/roundcube/roundcubemail/releases/download/1.6.1/roundcubemail-1.6.1-complete.tar.gz
+
+
+tar -xvf roundcubemail-1.6.1-complete.tar.gz
+sudo mv roundcubemail-1.6.1 /var/www/html/roundcubemail
+sudo chown -R www-data:www-data /var/www/html/roundcubemail/
+sudo chmod 755 -R /var/www/html/roundcubemail/
+sudo mysql -u root
+CREATE DATABASE roundcube DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
+CREATE USER roundcubeuser@localhost IDENTIFIED BY 'ubuntu';
+GRANT ALL PRIVILEGES ON roundcube.* TO roundcubeuser@localhost;
+flush privileges; 
+quit;
+
+sudo mysql roundcube < /var/www/html/roundcubemail/SQL/mysql.initial.sql
+
+sudo nano /etc/apache2/sites-available/roundcube.conf   # Make sure to create a virtual host for roundcube webmail that maps to your domain
+
+<VirtualHost *:80>
+  ServerName mail.paulco.xyz
+  DocumentRoot /var/www/html/roundcubemail/
+  ErrorLog ${APACHE_LOG_DIR}/roundcube_error.log
+  CustomLog ${APACHE_LOG_DIR}/roundcube_access.log combined
+
+  <Directory />
+    Options FollowSymLinks
+    AllowOverride All
+  </Directory>
+
+  <Directory /var/www/html/roundcubemail/>
+    Options FollowSymLinks MultiViews
+    AllowOverride All
+    Order allow,deny
+    allow from all
+  </Directory>
+
+</VirtualHost>
+
+
+sudo a2ensite roundcube.conf
+
+sudo systemctl reload apache2
+sudo systemctl restart dovecot
+sudo systemctl restart postfix
+
+#check
+http://mail.paulco.xyz/roundcubemail/installer/    -visit and make sure to correctly configure database name, database username 
+and database password as used before. Also, make sure to use port no 25 and no username/password in SMTP settings.
+#before you can test sending and receiving domain emails, make sure to create the users in Ubuntu.
+
+#sudo rm /var/www/html/roundcubemail/installer/ -r
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++ Adding SPF,DKIM,DMARC Record on DNS or Domain Panel  +
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Reference: 
+https://www.linuxbabe.com/mail-server/setting-up-dkim-and-spf
+
+++++++++++++++++++++++++++++
++ How to Setup SPF Record  +
+++++++++++++++++++++++++++++
+
+#check txt record in dns
+dig txt paulco.xyz
+
+#check txt record using nslookup
+
+nslookup
+> set type=txt
+>paulco.xyz
+
+#1st add spf record in dns server
+
+nano /etc/bind/forward.zone
+
+@   IN  TXT "v=spf1 a mx ip4:202.4.111.69 ~all"
+
+#2nd add in Domain Panel
+
+TXT     @      v=spf1 a mx ip4:202.4.111.69 ~all        auto/3600
+
+#now check again from terminal and web 
+
+Successfully added spf record and check successfully
+
+++++++++++++++++++++++++++++++++++
+
++++++++++++ Optional +++++++++++++
+++++++++++++++++++++++++++++++++++
+
+#Configuring SPF Policy Agent
+
+sudo apt install postfix-policyd-spf-python -y
+sudo nano /etc/postfix/master.cf
+
+#Add the following lines at the end of the file, which tells Postfix to start the SPF policy daemon when it’s starting itself.
+
+policyd-spf  unix  -       n       n       -       0       spawn
+    user=policyd-spf argv=/usr/bin/policyd-spf
+    
+#Save and close the file. Next, edit Postfix main configuration file.
+
+sudo nano /etc/postfix/main.cf
+
+#Append the following lines at the end of the file. The first line specifies the Postfix policy agent timeout setting. The following lines will impose a restriction on incoming emails by rejecting unauthorized email and checking SPF record.
+
+policyd-spf_time_limit = 3600
+smtpd_recipient_restrictions =
+   permit_mynetworks,
+   permit_sasl_authenticated,
+   reject_unauth_destination,
+   check_policy_service unix:private/policyd-spf
+
+#Save and close the file. Then restart Postfix.
+
+sudo systemctl restart postfix
+
+#Next time, when you receive an email from a domain that has an SPF record, you can see the SPF check results in the raw email header. The following header indicates the sender sent the email from an authorized host.
+
+#Received-SPF: Pass (sender SPF authorized).    
+
+#How to add DMARC record
+#add in Domain Dashboard
+TXT _dmarc  v=DMARC;p=quarantine;aspf=r;sp=none
++++++++++++++++++++++++++++++++++++++++++
+
++++++++++++++++++++++++++++++++++++++++++
++ How to setup DKIM record              +
++++++++++++++++++++++++++++++++++++++++++
+
+DKIM (DomainKeys Identified Mail) is an email authentication method designed to detect forged sender addresses in email (known as email spoofing). DKIM enables the user to check if an email was actually sent from the stated domain.
+
+apt-get install opendkim opendkim-tools -y
+
+sudo systemctl start opendkim
+
+sudo systemctl enable opendkim
+
+mkdir /etc/opendkim
+
+opendkim-genkey -D /etc/opendkim/ --domain paulco.xyz --selector mail
+
+cat /etc/opendkim/mail.txt
+.....................................................
+#<DKIM Orginal file>
+.....................................................
+mail._domainkey IN      TXT     ( "v=DKIM1; h=sha256; k=rsa; "
+          "p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqm42/tBAcceewB+FTl5SWVUT0Xa80QZfBBjP4xP16xRJo7YsOoaB9DZlVehNbZxPBJLhDiJdEyV9nDODqABroInlLM0pT2pRGHcXoiamU5tSzWWMWfd8d4kOZZgSeDyJk89+XNHMZeKRX45fJBdxzWVmaFRljxnEz90496aYScyr8WFGSUHCtZD1n2Rq/8O6u8Q8HJKoHfV2fJ"
+          "/ZQxN3Z2uUGWBjvB1fjaszHr/iZpsbMRTQM9gAxLI1xmtgs1k4jQua+deZWCLzylLeOW05/itDz87psLBOAZsqH2yh+x6FY1Mf2jGaROV0nSBY0Nf2JyY05FOVB0JgvOEKL569jwIDAQAB" )  ; ----- DKIM key mail for paulco.xyz.....................................................
+#<Orginal file>
+.....................................................
+
+#<Redit before entry in dns record. the haven't no space and quotation>
+.....................................................
+mail._domainkey	IN	TXT	v=DKIM1; h=sha256; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqm42/tBAcceewB+FTl5SWVUT0Xa80QZfBBjP4xP16xRJo7YsOoaB9DZlVehNbZxPBJLhDiJdEyV9nDODqABroInlLM0pT2pRGHcXoiamU5tSzWWMWfd8d4kOZZgSeDyJk89+XNHMZeKRX45fJBdxzWVmaFRljxnEz90496aYScyr8WFGSUHCtZD1n2Rq/8O6u8Q8HJKoHfV2fJ/ZQxN3Z2uUGWBjvB1fjaszHr/iZpsbMRTQM9gAxLI1xmtgs1k4jQua+deZWCLzylLeOW05/itDz87psLBOAZsqH2yh+x6FY1Mf2jGaROV0nSBY0Nf2JyY05FOVB0JgvOEKL569jwIDAQAB
+.....................................................
+#<Redit DKIM file>
+.....................................................
+
+#Copy the contents, switch to DNS control panel and create a TXT record:
+Go to Domain Dashboard>DNS Management>add a txt record as like mail.txt
+
+sudo chown -R opendkim:opendkim /etc/opendkim
+
+sudo nano /etc/opendkim.conf
+
+#Here, you need to comment and add a few lines
+
+AutoRestart Yes
+AutoRestartRate 10/1M
+Umask 002
+Syslog yes
+SyslogSuccess Yes
+LogWhy Yes
+Mode sv
+Canonicalization relaxed/simple
+UserID opendkim:opendkim
+Socket inet:8891@localhost
+PidFile /var/run/opendkim/opendkim.pid
+ExternalIgnoreList refile:/etc/opendkim/TrustedHosts
+InternalHosts refile:/etc/opendkim/TrustedHosts
+KeyTable refile:/etc/opendkim/KeyTable
+SigningTable refile:/etc/opendkim/SigningTable
+SignatureAlgorithm rsa-sha256
+
+#Add your domain to trusted hosts.
+sudo nano /etc/opendkim/TrustedHosts
+
+.paulco.xyz
+
+#Give the path to the key.
+sudo nano /etc/opendkim/KeyTable
+
+mail._domainkey.paulco.xyz paulco.xyz:mail:/etc/opendkim/mail.private
+
+#The path to the signature
+sudo nano /etc/opendkim/SigningTable
+
+*@paulco.xyz mail._domainkey.paulco.xyz
+*@*.paulco.xyz mail._domainkey.paulco.xyz
+
+#Restart the services
+sudo systemctl restart opendkim
+
+sudo systemctl restart postfix
+
+++++++++ Check Record +++++++++++++++
+nslookup -q=txt paulco.xyz
+nslookup -q=txt mail._domainkey.paulco.xyz
+
+#check mail performance
+https://www.mail-tester.com/
+
++++++++++++++++++++++++++++++++++++++
+#check dkim in terminal
+sudo opendkim-testkey -d paulco.xyz -s mail -vvv
+
+#Now that the record is added, let’s check it. Open a DKIM checkup service in the browser.
+
+https://dmarcian.com/dkim-inspector/
+
+paulco.xyz
+
+mail
+
+#The record is added. For additional fine-tuning, adding trusted hosts, domains etc you’ll have to open the configuration file and add extra settings.
+
+#Now let’s test mail sending again.
+echo "Hey, I am dev stack. i want to connect with you sumon" | mail -s "Connected Mail" sumonpaul267@gmail.com
+
+#Now the email arrived, and this time it was not dumped into the spam folder. Let’s reply to this email. The mail service works properly.
+
+#All right, so you have installed and configured Postfix and Dovecot, checked how the mail service works and added corresponding DNS records. For more convenient work, you can add a MySql storage server and a mail client - for example, Roundcube.
+
++++++++++++++++++++++++++++ End +++++++++++++++++++++++++++++

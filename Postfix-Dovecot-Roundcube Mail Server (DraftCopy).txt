@@ -1,0 +1,337 @@
+How to Configure Linux Mail Server on Ubuntu:
+
+ref:
+1. https://www.tecmint.com/setup-postfix-mail-server-in-ubuntu-debian (following)
+2. https://www.youtube.com/watch?v=IzG_Rbq_LmY (following)
+3. https://www.atlantic.net/vps-hosting/how-to-set-up-fully-featured-mail-server-with-postfix-dovecot-and-roundcube-on-ubuntu-18-04/
+4. https://www.vultr.com/docs/how-to-install-postfix-dovecot-and-roundcube-on-ubuntu-20-04/
+5. https://hetmanrecovery.com/recovery_news/how-to-install-and-configure-postfix-mail-server-with-dovecot-on-linux-ubuntu.htm
+6. https://yiworkdisk.netlify.app/en/linux/install_roundcube.html
+
+++++++++++++++++++++++++++++++++++++++++
+Basic Configuration ready for  mail server
+++++++++++++++++++++++++++++++++++++++++
+sudo hostnamectl set-hostname mail.paulco.xyz
+
+nano /etc/hosts
+
+192.168.3.55 mail.paulco.xyz mail
+
+hostname -f
+
+++++++++++++++++++++++++++++++++++++++++
+Installing & Configuring Postfix Mail Server on Ubuntu
+++++++++++++++++++++++++++++++++++++++++
+
+sudo apt-get update -y
+sudo apt-get upgrade -y
+sudo apt install apache2 apache2-utils mariadb-server mariadb-client -y
+sudo apt-get install mailutils          #(make sure to configure "System mail name" the same as your domain name)
+
+#before install php run this command 
+Ref: https://linuxhint.com/set-up-lamp-stack-ubuntu-22-04/
+
+sudo apt-get update
+sudo apt -y install software-properties-common
+sudo add-apt-repository ppa:ondrej/php
+sudo apt-get update
+
+sudo apt install php7.4 libapache2-mod-php7.4 php7.4-mysql php-net-ldap2 php-net-ldap3 php-imagick php7.4-common php7.4-gd php7.4-imap php7.4-json php7.4-curl php7.4-zip php7.4-xml php7.4-mbstring php7.4-bz2 php7.4-intl php7.4-gmp php-net-smtp php-mail-mime php-net-idna2 -y
+
+sudo apt-get install postfix -y #(optional)
+postconf mail_version
+sudo systemctl status postfix
+
+#sudo dpkg-reconfigure postfix
+
+#Testing Postfix Mail Server on Ubuntu
+
+telnet gmail-smtp-in.l.google.com 25
+
+ping smtp.gmail.com
+
+telnet gmail-smtp-in.l.google.com 25   /-may doesn't work
+
+telnet smtp.gmail.com 587
+    
+    #Output:
+        Trying 142.251.12.108...
+        Connected to smtp.gmail.com.
+        Escape character is '^]'.
+        220 smtp.gmail.com ESMTP t187-200...
+
+quit
+
+#Send to mail in gmail
+mail sumonpaul267@gmail.com
+
+ctrl+D
+
+#Verify Postfix with Local
+
+telnet 192.168.102.250 25
+
+#Send Mail Using CMD
+echo "Hey, I am dev stack. i want to connect with you sumon" | mail -s "Connected Mail" sumonpaul267@gmail.com
+
+sudo tail -f /var/log/mail.log
+
++++++++++++++++++++++++++++++++++++++++++++
+Installing Webmail Roundcube in Ubuntu
++++++++++++++++++++++++++++++++++++++++++++
+
+wget https://github.com/roundcube/roundcubemail/releases/download/1.6.1/roundcubemail-1.6.1-complete.tar.gz
+
+tar -xvf roundcubemail-1.6.1-complete.tar.gz
+sudo mv roundcubemail-1.6.1 /var/www/html/roundcubemail
+sudo chown -R www-data:www-data /var/www/html/roundcubemail/
+sudo chmod 755 -R /var/www/html/roundcubemail/
+sudo mysql -u root
+MariaDB [(none)]> CREATE DATABASE roundcube DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
+MariaDB [(none)]> CREATE USER roundcubeuser@localhost IDENTIFIED BY 'ubuntu';
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON roundcube.* TO roundcubeuser@localhost;
+MariaDB [(none)]> flush privileges; quit;
+sudo mysql roundcube < /var/www/html/roundcubemail/SQL/mysql.initial.sql
+sudo nano /etc/apache2/sites-available/roundcube.conf # Make sure to create a virtual host for roundcube webmail that maps to your domain
+
+<VirtualHost *:80>
+  ServerName mail.kumudini-pharma.com
+  DocumentRoot /var/www/html/roundcubemail/
+  ErrorLog ${APACHE_LOG_DIR}/roundcube_error.log
+  CustomLog ${APACHE_LOG_DIR}/roundcube_access.log combined
+
+  <Directory />
+    Options FollowSymLinks
+    AllowOverride All
+  </Directory>
+
+  <Directory /var/www/html/roundcubemail/>
+    Options FollowSymLinks MultiViews
+    AllowOverride All
+    Order allow,deny
+    allow from all
+  </Directory>
+
+</VirtualHost>
+
+
+sudo a2ensite roundcube.conf
+sudo systemctl reload apache2
+
+#check
+http://mail.kumudini-pharma.com/roundcubemail/installer/    -visit and make sure to correctly configure database name, database username and database password as used before. Also, make sure to use port no 25 and no username/password in SMTP settings.
+#before you can test sending and receiving domain emails, make sure to create the users in Ubuntu.
+
+#sudo rm /var/www/html/roundcubemail/installer/ -r
+
+#apt-get remove roundcube -y
+
+++++++++++++++++++++++++++++++++++++++++
+Advance Configuration on Postfix
+++++++++++++++++++++++++++++++++++++++++
+
+
+$ sudo cp /etc/postfix/main.cf /etc/postfix/main.cf.backup
+
+$ sudo nano /etc/postfix/main.cf
+    #inet_interfaces = loopback-only
+    inet_protocols = ipv4
+    home_mailbox = Maildir/
+    
+    
+sudo systemctl restart postfix
+
+
++++++++++++++++++++++++++++++++++++++++++++
+Installing Dovecot for IMAP and POP in Ubuntu
++++++++++++++++++++++++++++++++++++++++++++
+
+sudo apt install dovecot-imapd dovecot-pop3d -y
+
+sudo systemctl restart dovecot
+
+
+cp /etc/dovecot/dovecot.conf /etc/dovecot/dovecot.conf.bak
+
+nano /etc/dovecot/dovecot.conf
+
+# Add few line
+protocols = pop3 pop3s imap imaps
+
+#uncomment the following line:
+
+listen = *
+
+
+nano /etc/dovecot/conf.d/10-auth.conf
+
+#uncomment the following line:
+
+disable_plaintext_auth = yes / no [depend on you want]
+    
+nano /etc/dovecot/conf.d/10-mail.conf
+
+#uncomment the following line:
+
+mail_location = maildir:~/Maildir
+
+#comment the following line:
+
+mail_location = mbox:~/mail:INBOX=/var/mail/%u
+
+sudo systemctl restart dovecot
+sudo systemctl restart postfix
+sudo systemctl restart apache2
+
++++++++++++++++++++++++++++++++++++++++++++
+#Firewall configuration
++++++++++++++++++++++++++++++++++++++++++++
+sudo ufw app list
+
+sudo ufw app info "Postfix"
+
+$ sudo ufw allow "Postfix"
+
+$ sudo ufw allow "Postfix SMTPS"
+
+$ sudo ufw allow "Postfix Submission"
+
+#mail sending use the mailx package
+
+sudo apt install bsd-mailx
+
+sudo mailx -r sumon@rootofit.com -s "SUBJECT" [EMAIL_ADDRESS]
+
+
++++++++++++++++++++++++++++++++++++++++++++
+Installing phpmyadmin in Ubuntu  (Optional)
++++++++++++++++++++++++++++++++++++++++++++
+
+apt install phpmyadmin -y
+
+#select httpd server
+apache2
+
+#enter mssql password
+*******
+
+#dpkg-reconfigure phpmyadmin
+
+systemctl restart mariadb
+
+++++++++++++++++++++++++++++++++++++++++
+Manage User & Groups In Terminal Mode
+++++++++++++++++++++++++++++++++++++++++
+Reference: 
+https://linuxhint.com/ubuntu-add-user-to-group/
+
+#Listing All user
+less /etc/passwd
+
+#Listing All user
+getent passwd
+
+#specefic user list
+getent passwd | grep sumon
+
+#adding user
+adduser sumon
+
+groups
+
+#Viewing Group Information
+groups sumon        [groups username]
+
+addgroup admingrp
+
+groupadd test_group
+
+#Adding Users to a Group
+sudo adduser [username] [groupname]
+
+#Changing Primary Group Of a User
+sudo usermod -g [newPrimaryGroup] [username]
+
+usermod -a -G postfix sumon
+
+#Listing All Groups
+getent group
+
+su - sumon
+usermod -aG admingrp sumon
+
+deluser sumon admingrp
+
+deluser sumon
+
+#Deleting a Group
+delgroup linuxgroup1
+
++++++++++++++++++++++++++++++++++++++++++++
+Adding SPF,DKIM,DMARC Record on DNS or Domain Panel
++++++++++++++++++++++++++++++++++++++++++++
+Reference: 
+https://www.linuxbabe.com/mail-server/setting-up-dkim-and-spf
+
+dig txt kumudini-pharma.com
+
+#
+nslookup
+> set type=txt
+>kumudini-pharma.com
+#
+
+#1st add in local dns
+
+nano /etc/bind/forward.zone
+
+@   IN  TXT "v=spf1 a mx ip4:202.4.111.70 ~all"
+
+#2nd add in Domain Panel
+
+TXT     @      v=spf1 a mx ip4:202.4.111.70 ~all        auto/3600
+
+
+#now check again
+
+#Configuring SPF Policy Agent
+
+sudo apt install postfix-policyd-spf-python -y
+
+sudo nano /etc/postfix/master.cf
+
+#Add the following lines at the end of the file, which tells Postfix to start the SPF policy daemon when it’s starting itself.
+
+policyd-spf  unix  -       n       n       -       0       spawn
+    user=policyd-spf argv=/usr/bin/policyd-spf
+    
+#Save and close the file. Next, edit Postfix main configuration file.
+
+sudo nano /etc/postfix/main.cf
+
+#Append the following lines at the end of the file. The first line specifies the Postfix policy agent timeout setting. The following lines will impose a restriction on incoming emails by rejecting unauthorized email and checking SPF record.
+
+policyd-spf_time_limit = 3600
+smtpd_recipient_restrictions =
+   permit_mynetworks,
+   permit_sasl_authenticated,
+   reject_unauth_destination,
+   check_policy_service unix:private/policyd-spf
+
+#Save and close the file. Then restart Postfix.
+
+sudo systemctl restart postfix
+
+#Next time, when you receive an email from a domain that has an SPF record, you can see the SPF check results in the raw email header. The following header indicates the sender sent the email from an authorized host.
+
+#Received-SPF: Pass (sender SPF authorized).    
+
+++++++++++++++++++++++++++++++++++++++++
+
+##How to install Zimbra on Ubuntu
+
+Ref: 
+1. https://linuxhint.com/how-to-install-zimbra-on-ubuntu/
+2. https://computingforgeeks.com/how-to-install-zimbra-collaboration-on-ubuntu/
+
+++++++++++++++++++++++++++++++++++++++++
