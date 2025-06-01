@@ -2,8 +2,6 @@
 
 > This guide helps you build a **cost-free, full-featured enterprise mail server** using open-source tools: **Postfix, Dovecot, and Roundcube**, on Ubuntu 22.04.
 
----
-
 ## 📦 Components
 
 1. **Postfix** – Mail Transfer Agent (MTA): Responsible for sending & receiving emails.
