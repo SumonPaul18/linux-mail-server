@@ -1,47 +1,59 @@
-# 🌐 How to Configure a Full Linux Mail Server on Ubuntu (Postfix + Dovecot + Roundcube)
+# ☁️ Configure a Full-Featured Linux Mail Server on Ubuntu
 
-> This guide helps you build a **cost-free, full-featured enterprise mail server** using open-source tools: **Postfix, Dovecot, and Roundcube**, on Ubuntu 22.04.
+In this tutorial, you'll learn how to **configure a fully functional and cost-free mail server** using **Postfix, Dovecot, and Roundcube** on Ubuntu 22.04.2 LTS. This setup is suitable for enterprise-grade mail communication and includes optional SPF, DKIM, and DMARC for security.
 
-## 📦 Components
 
-1. **Postfix** – Mail Transfer Agent (MTA): Responsible for sending & receiving emails.
-2. **Dovecot** – Mail Delivery Agent (MDA): Handles POP3/IMAP access and mail storage.
-3. **Roundcube** – Web-based email client (Webmail): User-friendly interface to manage mails via browser.
+## 🛠 Tools Used
 
----
-
-## ✅ Requirements
-
-* ✅ Valid Domain (e.g., `paulco.xyz`)
-* ✅ DNS Server (with A, MX, SPF records)
-* ✅ Ubuntu 22.04.2 LTS (4 CPU, 8 GB RAM, 50 GB Disk, 1 Public IP)
+| Tool          | Role                                                   |
+| ------------- | ------------------------------------------------------ |
+| **Postfix**   | Mail Transfer Agent (MTA) for sending/receiving emails |
+| **Dovecot**   | Mail Delivery Agent (MDA) for POP3/IMAP access         |
+| **Roundcube** | Webmail interface for users                            |
 
 ---
 
-## 🔧 Basic Configuration
+## 🔰 Prerequisites
+
+* Valid domain: `paulco.xyz`
+* DNS Server (or Domain Panel access)
+* Ubuntu 22.04.2 LTS
+
+  * 4 CPU
+  * 8 GB RAM
+  * 50 GB Disk
+  * Public IP
+
+---
+
+## 🧱 Basic System Configuration
 
 ```bash
 # Check OS version
 cat /etc/os-release
 hostnamectl
 
-# Check CPU, RAM, Disk
+# Check CPU info
 lscpu
 nproc
+
+# Check RAM
 free -h
+
+# Check disk usage
 df -h
 
-# Set hostname
+# Change hostname
 sudo hostnamectl set-hostname mail.paulco.xyz
 
-# Edit hosts file
+# Update /etc/hosts
 sudo nano /etc/hosts
 192.168.3.55 mail.paulco.xyz mail
 
-# Confirm FQDN
+# Check FQDN
 hostname -f
 
-# Add mail user
+# Create new user
 sudo adduser mail
 sudo usermod -aG sudo mail
 su - mail
@@ -52,131 +64,131 @@ su - mail
 ## 📬 Install & Configure Postfix (MTA)
 
 ```bash
-sudo apt update && sudo apt upgrade -y
+sudo apt update -y && sudo apt upgrade -y
 sudo apt install postfix -y
 ```
 
-➡️ During setup, set **System Mail Name** as `mail.paulco.xyz`.
-
-### Postfix Configuration
+> 💡 During setup, set "System mail name" to your domain name (e.g., `paulco.xyz`)
 
 ```bash
-# Check Postfix version
+# Check version and status
 postconf mail_version
+sudo systemctl status postfix
 
 # Reconfigure if needed
 sudo dpkg-reconfigure postfix
 
-# Backup config and set Maildir
+# Enable Maildir format
 sudo cp /etc/postfix/main.cf /etc/postfix/main.cf.backup
 sudo nano /etc/postfix/main.cf
+# Add or edit:
 home_mailbox = Maildir/
 
+# Restart service
 sudo systemctl restart postfix
 ```
 
 ---
 
-## 🧪 Test Postfix
+## ✅ Test Postfix Setup
 
 ```bash
+# Install mail utilities
 sudo apt install mailutils -y
-echo "Test mail body" | mail -s "Test Subject" sumonpaul267@gmail.com
 
-# Tail mail logs
+# Send test email
+echo "Test from Postfix" | mail -s "Hello Postfix" your@email.com
+
+# Tail logs
 tail -f /var/log/mail.log
-```
 
-Test SMTP:
-
-```bash
+# Telnet test (external)
 telnet smtp.gmail.com 587
-telnet gmail-smtp-in.l.google.com 25
 ```
 
 ---
 
-## 📨 Install Dovecot (IMAP/POP3)
+## 📥 Install & Configure Dovecot (IMAP & POP3)
 
 ```bash
 sudo apt install dovecot-imapd dovecot-pop3d -y
 sudo systemctl restart dovecot
+sudo systemctl status dovecot
+```
 
-# Edit main Dovecot config
+### Configuration
+
+```bash
+# Backup and edit main config
+sudo cp /etc/dovecot/dovecot.conf /etc/dovecot/dovecot.conf.bak
 sudo nano /etc/dovecot/dovecot.conf
-protocols = imap imaps pop3 pop3s
+# Add:
+protocols = imap pop3
 listen = *
 
-# Authentication settings
+# Edit authentication
 sudo nano /etc/dovecot/conf.d/10-auth.conf
 disable_plaintext_auth = no
 
-# Mail storage
+# Configure mail storage
 sudo nano /etc/dovecot/conf.d/10-mail.conf
 mail_location = maildir:~/Maildir
-```
+# Comment out mbox line if exists
 
-Restart:
-
-```bash
+# Restart services
 sudo systemctl restart dovecot
 sudo systemctl restart postfix
 ```
 
 ---
 
-## 🌐 Install Roundcube Webmail
+## 📧 Install Roundcube Webmail
+
+### Prerequisites
 
 ```bash
+# Apache, MariaDB, PHP
 sudo apt install apache2 mariadb-server php libapache2-mod-php php-mysql -y
 sudo a2enmod rewrite
 sudo systemctl restart apache2
 ```
 
-### Install Required PHP Packages
+### PHP Modules
 
 ```bash
-sudo apt install php php-mysql php-imap php-xml php-mbstring php-intl php-zip php-json php-pear php-gmp php-bz2 php-auth-sasl php-mail-mime php-net-smtp php-net-idna2 php-net-ldap3 php-net-sieve -y
+sudo apt install openssl composer php-net-smtp php-mysql php-gd php-xml php-mbstring php-intl php-zip php-json php-pear php-bz2 php-gmp php-imap php-auth-sasl php-net-idna2 php-mail-mime php-net-ldap3 php-net-sieve -y
 ```
 
-If PHP fails to install:
-
-```bash
-sudo add-apt-repository ppa:ondrej/php -y
-sudo apt update
-```
+> 🔁 **If PHP version errors occur**, install from `ppa:ondrej/php`.
 
 ---
 
-### Roundcube Setup
+### Install Roundcube
 
 ```bash
 wget https://github.com/roundcube/roundcubemail/releases/download/1.6.1/roundcubemail-1.6.1-complete.tar.gz
-tar -xvzf roundcubemail-1.6.1-complete.tar.gz
+tar -xvf roundcubemail-1.6.1-complete.tar.gz
 sudo mv roundcubemail-1.6.1 /var/www/html/roundcubemail
 sudo chown -R www-data:www-data /var/www/html/roundcubemail/
+sudo chmod 755 -R /var/www/html/roundcubemail/
 ```
 
-Create MySQL Database:
+### Setup Database
 
-```sql
-sudo mysql
-CREATE DATABASE roundcube;
+```bash
+sudo mysql -u root
+CREATE DATABASE roundcube DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 CREATE USER 'roundcubeuser'@'localhost' IDENTIFIED BY 'ubuntu';
 GRANT ALL PRIVILEGES ON roundcube.* TO 'roundcubeuser'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
-```
 
-Import DB Schema:
-
-```bash
 sudo mysql roundcube < /var/www/html/roundcubemail/SQL/mysql.initial.sql
 ```
 
 ---
 
-### Configure Apache Virtual Host
+### Apache Virtual Host
 
 ```bash
 sudo nano /etc/apache2/sites-available/roundcube.conf
@@ -186,16 +198,16 @@ Paste:
 
 ```apache
 <VirtualHost *:80>
-  ServerName mail.paulco.xyz
-  DocumentRoot /var/www/html/roundcubemail/
-  ErrorLog ${APACHE_LOG_DIR}/roundcube_error.log
-  CustomLog ${APACHE_LOG_DIR}/roundcube_access.log combined
+    ServerName mail.paulco.xyz
+    DocumentRoot /var/www/html/roundcubemail/
+    ErrorLog ${APACHE_LOG_DIR}/roundcube_error.log
+    CustomLog ${APACHE_LOG_DIR}/roundcube_access.log combined
 
-  <Directory /var/www/html/roundcubemail/>
-    Options FollowSymLinks MultiViews
-    AllowOverride All
-    Require all granted
-  </Directory>
+    <Directory /var/www/html/roundcubemail/>
+        Options FollowSymLinks MultiViews
+        AllowOverride All
+        Require all granted
+    </Directory>
 </VirtualHost>
 ```
 
@@ -204,9 +216,13 @@ sudo a2ensite roundcube.conf
 sudo systemctl reload apache2
 ```
 
-➡️ Visit: `http://mail.paulco.xyz/roundcubemail/installer/`
+Now visit:
 
-⚠️ After setup:
+```
+http://mail.paulco.xyz/roundcubemail/installer/
+```
+
+> ⚠️ After installation, delete installer directory:
 
 ```bash
 sudo rm -r /var/www/html/roundcubemail/installer/
@@ -214,17 +230,15 @@ sudo rm -r /var/www/html/roundcubemail/installer/
 
 ---
 
-## 📌 Setup DNS Records (SPF, DKIM, DMARC)
+## 📡 Configure SPF Record (Basic Email Authentication)
 
-### ✅ SPF Record
+### Add SPF DNS Record
 
-* Add the following TXT record in your domain DNS panel:
-
-```
-TXT  @  "v=spf1 a mx ip4:202.4.111.69 ~all"
+```txt
+v=spf1 a mx ip4:202.4.111.69 ~all
 ```
 
-Check via terminal:
+You can verify:
 
 ```bash
 dig txt paulco.xyz
@@ -235,32 +249,29 @@ nslookup
 
 ---
 
-## 🔐 Optional: SPF Policy Agent (Postfix Integration)
+## ⚙️ Optional: Enforce SPF with Postfix
 
 ```bash
 sudo apt install postfix-policyd-spf-python -y
+```
 
-# Edit master.cf
-sudo nano /etc/postfix/master.cf
-# Add at the bottom:
+### Edit `/etc/postfix/master.cf`
+
+```ini
 policyd-spf  unix  -       n       n       -       0       spawn
   user=policyd-spf argv=/usr/bin/policyd-spf
 ```
 
-```bash
-# Edit main.cf
-sudo nano /etc/postfix/main.cf
+### Edit `/etc/postfix/main.cf`
 
-# Add:
+```ini
 policyd-spf_time_limit = 3600
 smtpd_recipient_restrictions =
-   permit_mynetworks,
-   permit_sasl_authenticated,
-   reject_unauth_destination,
-   check_policy_service unix:private/policyd-spf
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    reject_unauth_destination,
+    check_policy_service unix:private/policyd-spf
 ```
-
-Restart:
 
 ```bash
 sudo systemctl restart postfix
@@ -268,24 +279,21 @@ sudo systemctl restart postfix
 
 ---
 
+## 🔐 Coming Up Next
+
+> Add **DKIM & DMARC Records** for enhanced email authenticity and protection from spoofing.
+> Refer: [https://www.linuxbabe.com/mail-server/setting-up-dkim-and-spf](https://www.linuxbabe.com/mail-server/setting-up-dkim-and-spf)
+
+---
+
 ## ✅ Final Checklist
 
-| Component | Status                              |
-| --------- | ----------------------------------- |
-| Postfix   | ✅ Installed & tested                |
-| Dovecot   | ✅ IMAP/POP3 ready                   |
-| Roundcube | ✅ Webmail operational               |
-| SPF       | ✅ DNS record added                  |
-| Hostname  | ✅ mail.paulco.xyz                   |
-| Firewall  | 🔒 Open ports 25, 80, 443, 587, 993 |
+* [x] Domain name configured
+* [x] DNS records (A, MX, SPF) setup
+* [x] Postfix and Dovecot installed and tested
+* [x] Roundcube webmail working at `http://mail.paulco.xyz`
+* [x] Outgoing and incoming mail tested
+* [x] Logs verified with `tail -f /var/log/mail.log`
 
 ---
 
-## 📚 References
-
-* [LinuxBabe - SPF, DKIM, DMARC](https://www.linuxbabe.com/mail-server/setting-up-dkim-and-spf)
-* [Postfix Official Docs](http://www.postfix.org/)
-* [Dovecot Documentation](https://doc.dovecot.org/)
-* [Roundcube](https://roundcube.net/)
-
----
