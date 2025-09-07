@@ -167,7 +167,6 @@ mail-server-mastery/
 ├── day-6-cloud/
 ├── day-7-production/
 └── final-project-template.md
-
 ```
 
 ---
