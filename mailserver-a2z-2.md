@@ -167,14 +167,7 @@ mail-server-mastery/
 ├── day-6-cloud/
 ├── day-7-production/
 └── final-project-template.md
-```
 
----
-
-## 📜 License
-
-This course material is open for educational use. Attribution required.  
-© 2025 Sumon Paul — DevOps & Cloud Engineer
 ```
 
 ---
